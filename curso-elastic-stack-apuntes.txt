@@ -1,0 +1,116 @@
+Elastik Stack
+- Monitorización
+- Analítica de datos
+- Explotación de información
+
+Herramientas
+- Beats
+- Elasticsearch
+- Logstash
+- Kibana
+
+Comunicar las cuatro herramientas para monitorización y analítica de logs
+
+Elastic stack
+Es un conjunto de herramientas que está enfocada para para monitorización, analítica de logs y explotación de información. Este stack está definido por un conjunto de herramientas con una finalidad muy específica
+
+
+Orígenes
+Stack ELK
+- Elasticsearch -> Motor de búsqueda e indexación para localizar datos
+- Logstash  -> Gestión y tratamiento de información
+- Kibana -> Herramienta de monitorización y de dashboard para explotar la información
+
+
+Elastic stack
+- Beats -> Recolección de logs
+- Logstash -> Tratamiento de los logs
+- Elasticsearch -> Almacenamiento de los logs
+- Kibana -> consulta
+
+Con Beats, sacar funcionalidad que antes se hacía en Logstash, toda la recolección de los logs y de información antiguamente se hacía a través de Logstash, y ahora se hace a través de beats, lo que hace que logstash siga teniendo soporte para lo que hacía antes, pero ya no se suele utilizar tanto
+
+Beats, recolectar la información, no solamente logs
+- Sistemas
+- Red
+- BD
+
+Logstash, es quién se va a encargar de tratar esa información. También recolectarla, sin embargo no se va a centrar en esto, ya que para esto se encarga Beats, leer la información que hay que procesar, que hay que transformar, eliminar o añadir, o enriquecerla en cierta medida, hay que seguir haciendo cierto tipo de operaciones que se hace sobre la información, y esto es lo que permite Logstash, que es procesar la información y dejarla a nuestro gusto. Hay que tener en cuenta que la fuente de información no va a dejar la misma como a nosotros nos gustaría, en cuanto a formatos
+
+Elasticsearch, que es donde se va almacenar la información, y donde podemos consultarla, no obstante hace más cosas, como por ejemplo indexación, y el procesamiento para indexarla
+
+Kibana, es la herramienta que va a permitir explotar esa información, es decir ver toda la información que se ha ido guardando, pero verla de una manera mucho más global, esto nos va a permitir localizar mucho más fácil, como también una visión general sobre todo lo que tenemos.
+
+Práctica que se va a desarrollar durante todo el curso
+- Utilizar todas las herramientas del stack, y comunicarlas de la manera correcta y al final obtener un resultado satisfactorio
+- Crear una aplicación que permita monitorizar los servidores donde está desplegar, y monitorizar la aplicación en si
+- Aplicación en repositorio de BitBucket que genera log
+
+- Beats, para sacar métricas tanto de red como de monitorización del sistema donde está desplegada la aplicación, y lectura de los ficheros de logs de la aplicación
+- Posteriormente, se va a pasar la información a Logstash, para procesar la información, para transformarla en la medida de lo que se necesite
+- Se envía a Elasticsearh para almacenarla
+- Crear unos páneles de control en Kibana desde lo que podremos explotar la información, cómo está de cargado el sistema, cómo está las infertaces de red, que tráfico está moviéndose por ella, y el estado completo de la aplicación, qué errores se han producido, y si ha sufido algún tipo de ataque
+
+
+Versiones de elastic
+- Versión 7 de elastic
+- Utilizar siempre a la última versión estable
+- Versiones de trabajo diferentes que se van trabajando a lo largo del curso: 6.7, 6.5 y 7.0
+- Novedades que afectan a Kibana, uso de espacios y el uso de canvas, y en la versión 7 se incorporó el modo oscuro
+- Y novedades de Elastisearh, introducción a elasticsearchSQL, lenguaje de consultas a elasticsearch basado en SQL, novedades pero a nivel interno en su motor, coordinación de clúster y optimización entre la comunicación entre los nodos
+
+Cambios a versión 6.X a 7.0
+- Copiar la carpeta ./data, a la nueva instalación de elastic
+- Actualizar la configuración de elasticsearch
+
+- Logstash, copiar las configuraciones utilizadas, y los patrones, y posteriormente arrancar el Logstash
+- Beats, replicar la configuración de FileBeat, de las versiones anteriores
+
+
+Instalación de elasticsearch
+- Instalar Beats, Logstash, ElasticSearch, y or púltimo kibana
+- Instalarla en los 3 sistemas operativos principales: Mac, Ubuntu y Windows
+- El método es similar en los 3 sistemas operativos, es que es descargar y descomprimir lo paquetes, configurarlos mínimamente y ponerlos en marcha
+- Alternativas de instalación del stack, basado en contenedores, y basado en la paquetería de los sistemas operativos
+- Utilizar de ser posible la última versión estable
+
+
+Instalación de Beats
+- Acceder a la página https://www.elastic.co/es/downloads/
+- Herramientas pequeñas para recolectar la información
+        - Filebrat
+        - Packetbeat
+        - WinLogBeat
+        - Metricbeat
+        - Heartbeat
+        - Auditbeat
+- Descargar cualquier Beat, por ejemplo metricbeat
+- metricbeat.yml que es una configuración de ejemplo
+- metricbeat.reference.yml, fichero de toda la configuración posible que se puede hacer en el beat
+- Se modifica el metricbeat.yml, para comentar el output para elasticsearch, y habilitar un output por consola
+- Se inicia el metricbeat, mediante el comando siguiente:
+  $ ./metricbeat -c metricbeat.yml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
