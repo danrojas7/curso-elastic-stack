@@ -56,7 +56,7 @@ Versiones de elastic
 - Versión 7 de elastic
 - Utilizar siempre a la última versión estable
 - Versiones de trabajo diferentes que se van trabajando a lo largo del curso: 6.7, 6.5 y 7.0
-- Novedades que afectan a Kibana, uso de espacios y el uso de canvas, y en la versión 7 se incorporó el modo oscuro
+- Novedades que afectan a Kibana, uso de espacios y el uso de canvas desde la versión 6.5, y en la versión 7 se incorporó el modo oscuro
 - Y novedades de Elastisearh, introducción a elasticsearchSQL, lenguaje de consultas a elasticsearch basado en SQL, novedades pero a nivel interno en su motor, coordinación de clúster y optimización entre la comunicación entre los nodos
 
 Cambios a versión 6.X a 7.0
@@ -64,7 +64,7 @@ Cambios a versión 6.X a 7.0
 - Actualizar la configuración de elasticsearch
 
 - Logstash, copiar las configuraciones utilizadas, y los patrones, y posteriormente arrancar el Logstash
-- Beats, replicar la configuración de FileBeat, de las versiones anteriores
+- FileBeats, replicar la configuración de FileBeat, de las versiones anteriores
 
 
 Instalación de elasticsearch
@@ -85,15 +85,104 @@ Instalación de Beats
         - Heartbeat
         - Auditbeat
 - Descargar cualquier Beat, por ejemplo metricbeat
+- Al tener acceso a la carpeta, en metricbeat se tiene los archivos README así como también el agente que lo pone en funcionamiento y los archivos de configuración
 - metricbeat.yml que es una configuración de ejemplo
 - metricbeat.reference.yml, fichero de toda la configuración posible que se puede hacer en el beat
-- Se modifica el metricbeat.yml, para comentar el output para elasticsearch, y habilitar un output por consola
+- Se modifica el metricbeat.yml, para comentar el output para elasticsearch, y habilitar un output por consola:
+output.console:
+  pretty: true
 - Se inicia el metricbeat, mediante el comando siguiente:
   $ ./metricbeat -c metricbeat.yml
+- El proceso es similar para Windows, Linux y Mac, es solo descargar el beat, comentar las líneas enm el archivo de configuración correspondiente a la configuración del elastic, agregar un output de consola, y finalmente se ejecuta el servicio.
 
 
 
+Instalación de logstash
+- Descargar el Logstash desde la página de elastic:
+  https://elastic.co/producs/logstash
+- Para poner en funcionamiento el logstash, se debe contar por lo menos con una versión de Java 8 o posterior, para ello se comprueba mediante el comando siguiente:
+  $ java -version
+- Descomprimir el logstash
+- En la raíz del logstash, se encuentra la carpeta bin/, con todos los ejecutables de los agentes, y la carpeta config/, en la que se encuentra los archivos de configuración del logstash, la configuración de la JVM de Java, y la configuración propia del logstash como es el caso de los pipelines
+- Configuración básica para verificar que tanto el logstash esté correctamente funcionando, como también la máquina virtual de Java funcione sin inconveniente, se va a configurar un pipeline básico de entrada y salida, para verificarlo:
 
+example.conf:
+
+input {
+   stdin {}
+}
+
+
+output {
+   stdout {
+      codec => json_lines
+   }
+}
+
+- A continuación se ejecuta el logstash mediante el siguiente comando, referenciando el archivo de configuración del pipeline con su input y output:
+  $ ./bin/logstash -f ./config/example.conf
+- Todo lo que se digite en la entrada estándar de consola, se realiza el retorno con el formateo estándar que trae el logstash para formateo de los mensajes
+
+
+
+Instalación del elasticsearch
+- Descargar desde la página del elastic stack:
+  https://www.elastic.co/downloads/elasticsearch
+- Descomprimir el archivo tar.gz descargado
+- En este caso, solo con la configuración básica basta, por lo tanto solamente hay que iniciar el elastic
+  $ bin/elastic -d
+  (El parámetro -d es para iniciar el elastic en modo servicio, por lo tanto no va a bloquear la terminal)
+- Al iniciar el servidor de elastic, ahora se comprueba si arrancó correctamente, se debe acceder a http://localhost:9200
+- Al comprobarse la configuración, podemos verificar que el elastic arrancó con las opciones por defecto, tanto el nombre del nodo elastic como el nombre del cluster
+
+
+Instalación del kibana
+- Acceder a descargar el kibana:
+  https://www.elastic.co/kibana
+- Descomprimir el tar.gz
+- Con las configuraciones que trae por defecto, se puede iniciar sin problema el kibana
+- Se debe iniciar una instancia de elastic, ya que kibana de por sí es un frontend para mostrar la información que se encuentra en elastic, y de hecho, la misma configuración se encuentra dentro de la misma base de datos
+- Si el elasticsearch no se encuentra iniciado en el host y puerto por defecto (localhost:9200), queda a la espera a dicha configuración por si posteriormente se inicia una instancia elastic en el host y puerto mencionado
+- Para corroborar el correcto funcionamiento del kibana, solo basta con acceder a la dirección http://localhost:5601
+
+
+
+Instalación del elastic stack a través de docker
+- Se puede acceder a través de la página, a explorar las versiones que existen de las imágenes de los distintos componentes del stack:
+  https://www.docker.elastic.co/
+- Se va a arrancar la parte principal del stack
+- Se va a crear un fichero docker-compose.yml para crear todos juntos los componentes del stack
+- Para las configuraciones básicas, se puede remitir a la documentación de la configuración en docker:
+  https://www.elastic.co/guide/en/elastic-stack-get-started/current/get-started-docker.html
+- para iniciar el archivo docker-compose.yml, se debe ingresar el siguiente comando:
+  $ docker-compose up -d
+- Para visualizar los logs a fin de validar que todos los componentes hayan subido sin problema se puede verificar mediante los siguientes comandos:
+  $ docker-compose logs -f elasticsearch
+  $ docker-compose logs -f logstash
+  $ docker-compose logs -f kibana
+- Al ejecutar los contenedores con el docker-compose, se observa que los tres contenedores suben sin problema, sin embargo el logstash al no tener la configuración de pipelines en la ruta definida, detiene su ejecución, por lo tanto es correcto ya que está intentando leer los pipelines que están en la ruta acoplada con el volumen
+- Para verificar el contenido dentro de la ruta donde se almacena la data en el contenedor de elasticsearch, se puede ejecutar el siguiente comando:
+  $ docker exec -it elasticstack_elasticsearch_1 /bin/bash
+  $ cd /usr/share/elasticsearch/data
+  $ cd /usr/share/elasticsearch/config
+  
+  En esta ruta se encuentran entre otros, los siguientes archivos de configuración, los cuales se van a ir viendo a lo largo del curso:
+  elasticsearch.yml
+  jvm.options
+  
+  Sin embargo también hay forma de cambiar la configuración del contenedor de elasticsearch, a través de variables de entorno pasadas al contenedor a través el docker-compose.yml.
+  También hay forma de exportar un volumen con un fichero de configuración, y de esta forma acoplar mediante el volumen el archivo de configuración que se encuentre en nuestra máquina host
+  
+  En cuando al logstash, se puede acoplar el volumen con los pipelines que se tengan definidos, de igual manera se puede aoplar el archivo de configuración mediante la metodología ya descrita
+  
+  En el caso de beats, dentro del sistema docker, todos los beats tienen su respectiva imagen para crearlos, de igual manera con su documentación, lo que hace falta es exportar un directorio en donde se encuentre los archivos logs de donde se debe leer la información. También se puede sobreescribir el archivo de configuración.
+
+
+
+Otras alternativas de instalación
+- Todas las herramientas no necesariamente tienen que estar corriendo todas en un mismo host en el caso que sea un proyecto en ambiente productivo, por ejemplo los beats están corriendo en los nodos en donde se encuentran los servicios que están generando los logs. Se pueden tener una o varias máquinas que se encuentran con logstash que ayudarán a recibir a recibir la información y a procesarla. De igual manera para el elastic, que puede tener un clúster en el cual pueda almacenar y responder las consultas. También se pueden tener una o varias máquinas con kibana. La manera más común es decargar los componentes necesarios, en la versión requerida y se instalan en cada nodo, aunque también es posible realizar la automatización de este proceso mediante Ansible. Auqnue también existen otras formas de desplegarlos en ambientes productivo, esto es mediante el uso de contenedores.
+También se pueden instalar mediante el sistema de paquetes en la distribución en Linux, por ejemplo .rpm para distribuciones basadas en RedHat, o .deb para distribuciones basadas en Debian Linux, se puede instalar mediante los gestores de paquetes yum o apt-get, aunque existe un inconveniente es que está ligado a que dependería de las versiones que vendrían para la plataforma.
+La otra alternativa sería utilizar un servicio de nube para el funcionamiento del elasticsearch y el kibana (Amazon)
 
 
 
