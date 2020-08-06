@@ -180,15 +180,135 @@ Instalación del elastic stack a través de docker
 
 
 Otras alternativas de instalación
-- Todas las herramientas no necesariamente tienen que estar corriendo todas en un mismo host en el caso que sea un proyecto en ambiente productivo, por ejemplo los beats están corriendo en los nodos en donde se encuentran los servicios que están generando los logs. Se pueden tener una o varias máquinas que se encuentran con logstash que ayudarán a recibir a recibir la información y a procesarla. De igual manera para el elastic, que puede tener un clúster en el cual pueda almacenar y responder las consultas. También se pueden tener una o varias máquinas con kibana. La manera más común es decargar los componentes necesarios, en la versión requerida y se instalan en cada nodo, aunque también es posible realizar la automatización de este proceso mediante Ansible. Auqnue también existen otras formas de desplegarlos en ambientes productivo, esto es mediante el uso de contenedores.
-También se pueden instalar mediante el sistema de paquetes en la distribución en Linux, por ejemplo .rpm para distribuciones basadas en RedHat, o .deb para distribuciones basadas en Debian Linux, se puede instalar mediante los gestores de paquetes yum o apt-get, aunque existe un inconveniente es que está ligado a que dependería de las versiones que vendrían para la plataforma.
+- Todas las herramientas no necesariamente tienen que estar corriendo todas en un mismo host en el caso que sea un proyecto en ambiente productivo, por ejemplo los beats están corriendo en los nodos en donde se encuentran los servicios que están generando los logs. Se pueden tener una o varias máquinas que se encuentran con logstash que ayudarán a recibir la información y a procesarla. De igual manera para el elastic, que puede tener un clúster en el cual pueda almacenar y responder las consultas. También se pueden tener una o varias máquinas con kibana. La manera más común es decargar los componentes necesarios, en la versión requerida y se instalan en cada nodo, aunque también es posible realizar la automatización de este proceso mediante Ansible. Aunque también existen otras formas de desplegarlos en ambientes productivo, esto es mediante el uso de contenedores.
+También se pueden instalar mediante el sistema de paquetes en la distribución en Linux, por ejemplo .rpm para distribuciones basadas en RedHat, o .deb para distribuciones basadas en Debian Linux, se puede instalar mediante los gestores de paquetes yum o apt-get, aunque existe un inconveniente y es que está ligado a que dependería de las versiones que vendrían para la plataforma.
 La otra alternativa sería utilizar un servicio de nube para el funcionamiento del elasticsearch y el kibana (Amazon)
 
 
+Prueba de concepto
+La prueba de concepto es para validar que todo lo que se instaló funcione de una manera adecuada
+Se han instalado el beats, específicamente el metricbeat el cual obtiene las métricas de rendimiento del sistema operativo, el logstash, el elasticsearch y el kibana
+Se va a realizar un flujo completo de interacción con el stack, se va a generar un fichero de log, el cual se va a leer mediante el filebeat, posteriormente, la información que se almacene en dicho log va a ser procesada mediante una pipeline de logstash, la cual va a procesar y enviar la información del log al elasticsearch para que se almacene, y luego se va a utilizar el kibana para consultar la información que se encuentra almacenada en el elasticsearch.
+
+- Generar un archivo log directamente con información de prueba
+- Posteriormente, se realiza la descarga del filebeat, y se configura con la entrada del filebeat en el puerto en donde está enviando la información, y el output el elasticsearch
+- Se debe arrancar las herramientas en el orden siguiente, 1). Elasticsearch 2). Kibana 3). Logstash 4). Filebeat
+- Iniciar el filebeat mediante el siguiente comando:
+  $ ./filebeat -c filebeat.yml
+  Antes se debe comentarear la sesión de elasticsearch, ya que no es necesario enviar la información directamente a elasticsearh, sino a través de logstash, por lo cual se comentarea dicha línea, y se descomentarea la línea de la sección del logstash, agregando también la información de la IP y el puerto del listener destinado para el beat desde el logstash
+- Se debe agregar un index patern en kibana, para visualizar el índice creado automáticamente cuando se realizó el envío desde el filebeat, para esto se agrega el patrón logstash-*, con la selección del campo para validar fechas e histogramas a través de incorporar el campo @timestamp, con esto ya se pueden visualizar los índices disponibles y su contenido
 
 
 
 
+
+Configuración del Beats
+Objetivos
+- Ver los diferentes beats, validar los beats más importantes, con énfasis en el filebeat
+
+
+
+
+metricbeat
+
+- Permite sacar métrícas de todo tipo, tanto del sistema operativo como de ciertas aplicaciones en ejecución como apache redis o kafka, se pueden extraer métricas tanto de docker y kubernets. Para cualquier propósito se puede consultar de la documentación, cómo se puede agregar funcionalidades adicionales al beat mediante los módulos
+- Para el caso particular, se debe subir el logstash y el kibana, no es necesario tener arrancado el logstash, ya que la información la entrega el beat directamente procesada al elasticsearch
+- Validación de módulos y templates
+- Definir entradas y salidas, las entradas se pueden establecer mediante módulos, y la salida, como está por defecto al elasticsearch, no se haría necesario cambiar dicha configuración
+- Es necesario habilitar la integración del metricbeat con los dashboard, para ello es necesario descomentar la línea para habilitar los dashboard kibana, así como la url con puerto del kibana
+- Se debe habilitar la monitorización xpath, y el monitoreo de elasticsearch
+- Para listar los módulos que vienen integrados en el metricbeat, basta mediante el siguiente comando:
+  $ ./metricbeat modules list
+  Este comando tiene la siguiente salida:
+Enabled:
+system
+
+Disabled:
+activemq
+aerospike
+apache
+appsearch
+aws
+azure
+beat
+beat-xpack
+ceph
+ceph-mgr
+cloudfoundry
+cockroachdb
+consul
+coredns
+couchbase
+couchdb
+docker
+dropwizard
+elasticsearch
+elasticsearch-xpack
+envoyproxy
+etcd
+golang
+googlecloud
+graphite
+haproxy
+http
+ibmmq
+iis
+istio
+jolokia
+kafka
+kibana
+kibana-xpack
+kubernetes
+kvm
+linux
+logstash
+logstash-xpack
+memcached
+mongodb
+mssql
+munin
+mysql
+nats
+nginx
+openmetrics
+oracle
+php_fpm
+postgresql
+prometheus
+rabbitmq
+redis
+redisenterprise
+sql
+stan
+statsd
+tomcat
+traefik
+uwsgi
+vsphere
+windows
+zookeeper
+
+Para validar la configuración de cada módulo por separado, se tiene que validar las configuraciones presentes en el directorio de modules.d/, en el cual se puede habilitar, quitando la extensión sufijo .disabled, del archivo de configuración del módulo que se requiere deshabilitar, en el caso particular se modifica el beat de system.
+
+https://www.elastic.co/guide/en/beats/metricbeat/current/metricbeat-modules.html
+
+- Para validar la configuración modificada en un archivo de configuración, para testear que se encuentre de manera correcta, se puede realizar mediante el siguiente comando:
+  $ ./metricbeat test config -c metricbeat.yml
+- Ahora se procede a inicializar el beat, mediante el siguiente comando:
+  $ ./metricbeat -c metricbeat.yml
+- Para corroborar la correcta configuración del beat, se accede a kibana en Stack Monitoring, y en la sección de Dashboard, los dashboard correspondientes a "metricbeat system"
+
+- Se procede a validar el módulo de beat que realiza el monitoreo de docker:
+- Para habilitar los módulo de docker y elasticsearch (por defecto deshabilitado), se ingresa el siguiente comando:
+  $ ./metricbeat modules enable docker
+  $ ./metricbeat modules enable elasticsearch
+
+
+
+
+Configuración del packetbeat
+
+- Monitorizar el tráfico de red tanto entrante como saliente, tanto a nivel de aplicación como a nivel genérico
 
 
 
