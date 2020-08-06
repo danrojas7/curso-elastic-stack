@@ -309,6 +309,43 @@ https://www.elastic.co/guide/en/beats/metricbeat/current/metricbeat-modules.html
 Configuración del packetbeat
 
 - Monitorizar el tráfico de red tanto entrante como saliente, tanto a nivel de aplicación como a nivel genérico
+- Se debe descargar de la siguiente URL:
+  https://www.elastic.co/downloads/beats/packetbeat
+- Se debe centrar en tres aspectos: el input, de donde va a tomar la información, el output, donde la va a enviar a almacenar, y temas de monitorización
+- En el input, se tiene que determinar qué interfaz se va a monitorizar
+- activar la monitorización xpack, y la de elasticsearch
+- habiltar la salida u output a kibana y elasticsearch, también se debe activar los dashboard de kibana 
+- Mediante el siguiente comando, se puede determinar la interfaz en la cual se va realizar la monitorización (input):
+  $ ./packetbeat devices
+  La salida del comando es el siguiente:
+  
+  0: eth0 (No description available) (192.168.1.38 ::cd6c:5f51:6b6f:b03b ::3e44:df0d:943c:628 fe80::38a0:e7c1:8c38:b3e9)
+  1: any (Pseudo-device that captures on all interfaces) (Not assigned ip address)
+  2: lo (No description available) (127.0.0.1 ::1)
+  3: wlan1 (No description available) (Not assigned ip address)
+  4: nflog (Linux netfilter log (NFLOG) interface) (Not assigned ip address)
+  5: nfqueue (Linux netfilter queue (NFQUEUE) interface) (Not assigned ip address)
+
+  Se puede establecer la interfaz por el nombre o por el índice asignado
+- Se puede monitorizar mendiante los protocolos y puertos por servicios para monitorización, por ejemplo mysql, http, dns
+- Se pueden monitorizar a nivel de procesos, por ejemplo el tráfico generado por el proceso de mysql
+- Inicializar el servicio de packetbeats, para ello primero se debe realizar la comprobación del fichero de configuración mediante el comando siguiente:
+  $ ./packetbeat test config -c packetbeat.yml
+- Al inicializarlo mediante el comando siguiente, se obtiene un error, en el cual se especifica que el usuario que realiza la ejecución del proceso de packetbeat no tiene los permisos suficientes para monitorizar las interfaces, al menos esto sale en los sistemas basados en UNIX:
+  $ ./packetbeat -c packetbeat.yml
+  
+  Por lo tanto se tiene que ejecutar desde un usuario que tenga el permiso de hacer sniffing para el monitoreo de las interfaces, o también desde el root mediante sudo, siempre y cuando el root también sea el propietario del archivo de configuración:
+  $ sudo ./packetbeat -c packetbeat.yml
+- Se puede observar el resultado de la ejecución del beat accediendo a kibana, en el de Flows, en el cual únicamente va a tener información, si no se tiene ningún otro servicio del sistema habilitado
+
+
+
+
+Configuración del heartbeat
+
+
+
+
 
 
 
