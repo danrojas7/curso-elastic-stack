@@ -342,11 +342,93 @@ Configuración del packetbeat
 
 
 Configuración del heartbeat
+- Este beat permite conocer el estado de los servicios en funcionamiento, con esto permite conocer si un servidor o base de datos se encuentra en funcionamiento o se encuentra caída
+- Nagios, similar a dicha herramienta
+- Se debe descomprimir el tar.gz
+- Configurar entrada de datos y salida
+- La configuración de datos se debe configurar a elasticsearch de salida
+- Lo diferente en este beat son los monitores, en los que se pueden monitorear en URLs a servicios http (aplicaciones web)
+- Soporta servicios TCP, en caso de comprobar servicios smtp y bases de datos, para comprobar si un determinado servicio a un determinado puerto
+- También soporta monitoreo icmp (ping)
+- Se puede definir un schedule, por defecto se puede dejar de la manera tradicional, o también se puede utilizar la sintáxis de cron
+- Se testea el archivo de configuración, mediante el siguiente comando:
+  $ ./heartbeat test config -c heartbeat.yml
+- Y se ejecuta mediante el siguiente comando:
+  $ ./heartbeat -c heartbeat.yml
+- Para validar la información enviada por el beat heartbeat, se debe consultar en kibana la sección correspondiente de uptime, para consultar las aplicaciones que se encuentran arriba como también las que se encuentran caídas
 
 
 
 
+Configuración del Filebeat
+- Es uno de los beats más compejos
+- Análisis del logs
+- Cómo utilizar los módulos de los logs preconfigurados (Apache, IIS)
+- Configuraciones de filebeat para optimización en su funcionamiento
 
+
+- Para analizar el log de una aplicación personalizada, se puede descargar una aplicación demo que genera logs de forma aleatoria, en la siguiente URL:
+  https://bitbucket.org/kuroobicoders/log-generator/downloads/
+- Despliega una ayuda que muestra el programa respecto a las entradas requeridas para generar el log
+  $ java -jar log-generator-1.0.jar -h
+- Lo primero que se tiene que realizar es validar el log de la aplicación a la cual se requiere monitorear, para ello ser va a generar una traza aleatoria de logs mediante el programa del componente JAR mediante el comando:
+  $ java -jar ./log-generator-1.0.jar -l 50 -d 0
+- Se debe evitar la configuración de logs por el nombre explícito del log, ya que en algunos casos el log puede rotar. Para el caso de la aplicación de los logs, se puede ejecutar con el siguiente comando, el cual genera las trazas de manera indefinida para verificar si el log va a rotar
+  $ java -jar ./log-generator-1.0.jar -l -1 -d 0
+- Para asegurar que el filebeat tome los logs tanto el actual como el log que ya rotó, se puede hacer mediante la máscara siguiente: log-generator*.log, en caso de validar que todos los logs los esté tomando de manera correcta, se puede comprobar mediante un ls:
+  $ ls -lah log-generator*.log
+- Inicialmente para asegurar si el log se está recolectando de manera correcta, se va a comentaerar el output del logstash, y se va a agregar uno de consola, ya que es objetivo en este paso en particular validar que el log se está recolectado de manera correcta
+- Para ejectar el filebeat, y validar que se está recolectando el log, se puede validar mediante la ejecución del filebeat, con el comando:
+  $ ./filebeat -c ./filebeat.yml
+- Para asegurar que los logs se están recolectando, se ejecuta la aplicación:
+  $ java -jar ./log-generator-1.0.jar -l 20 -d 1000
+- Los mensajes de DEBUG, no deberían ir al logstash (las trazas de depuración), para ello se pueden configurar para recoger las trazas necesarias mediante inclusión o exclusión de trazas mediante filtros de patrones
+- Se debe realizar modificaciones adicionales, para que se obtengan las trazas de error de varias líneas en el caso de los stacktrace, para queden en un solo evento de filebeat, para ello filebeat proporciona un soporte de evento multilínea, en el caso de que un evento de log no inicie mediante un evento de traza, se debe adjuntar a un evento anterior, para ello se va a utilizar una expresión regular
+- Página para testear las expresiones regulares:
+  https://rubular.com/
+- Con la expresión regular, se puede definir los eventos de traza con los cuales inicia un nuevo evento:
+  ^(DEBUG|INFO|ERROR|TRACE|FATAL|WARNING).*
+- Se debe negar la expresión, para indicar que las líneas no identificadas mediante un evento de traza, por ejemplo en un stacktrace, concatene al evento anterior hasta que exista un nuevo evento de traza
+
+
+Módulos para monitoreo de logs preconfigurados en filebeat
+- Para visualizar los módulos disponibles en filebeat
+  $ ./filebeat modules list
+- Para habilitar un módulo, se puede mediante el comando
+  $ ./filebeat modules enable logstash system
+
+  Para el módulo de system, va a recolectar las métricas del sistema, y este es únicamente para sistemas basados en UNIX, por lo tanto si se utiliza desde Windows, no va a recopilar ningún tipo de información
+- Para el módulo system, el automáticamente tomará la información en base al sistema operativo, y a partir de ahí va a determinar las rutas estándar en donde se encuentran las rutas estándar de los logs, de igual manera para el logstash.
+- Para el caso particular del módulo de logstash, lo determina en base a si fue instalado en el sistema con base en algún sistema de paquetería, o lo determinará en base la instalación y la ruta del ejecutable instalado en Windows, para el caso particular de los ejercicios realizados, no va a funcionar ya que no es una instalación en rutas estándar, por lo tanto es necesario configurar las rutas de manera explícita. 
+- Para el caso particular de la configuración de los módulos para logs preconfigurados, no requieren procesamiento a través del logstash, sino que pasan directamente al elasticsearch. Lo que se suele hacerse normalmente, es monitorear los logs de las aplicaciones personalizadas a través de un filebeat apuntando este mismo a logtsash para el procesamiento de los logs en el mismo, y monitorear el sistema mediante módulos y monitorización, a través de otro filebeat que apunte directamente en su output al elasticsearch.
+- Se inicia el filebeat mediante el comando:
+  $ ./filebeat -c filebeat.yml
+- En kibana, se puede validar la monitorización del filebeat, como también con los dashboard configurados para filebeat como los SSH login attemps, Sudo attemps, etc.
+
+
+
+Configuración avanzada del filebeat
+- Validación de los diferentes tipos de inputs
+  stdinput
+  docker
+  redis
+  UDP
+  TCP
+- Se debe configurar, ya que en el apartado de logstash se requiere tener habiitado el output hacia el logstash desde el filebeat, para ello se debe deshabilitar el setup del kibana y del elasticsearch, para habilitar el logstash, también es importante resaltar que se pueden definir múltiples host de logstash, siempre y cuando estas instancias estén activas en un modo cluster
+- El pipelining, es una configuración en la cual se puede establecer el número simultáneo de envíos de trazas, y que van a quedar en espera hasta la respuesta, se debe tener sumo cuidado en la configuración de esta propiedad, ya que un pipelining alto puede saturar el logstash, y más si hay más beats reportando simultáneamente el logstash; por otro lado la propiedad workers, hace referencia al número de hilos del procesador simultáneos para uso del reporte hacia el logstash, con lo cual también se tiene que tener cuidado que queden hilos disponibles para otros procesos si es el caso
+- Se debe optimizar el trabajo que realiza el filebeat, para ello se debe deshabilitar las exclusiones, ya que en dado caso es necesario para cada traza evaluarla con las exclusiones para validar si aplican o no, pero si se deshabilita para el caso particular de los debugs, se enviarían todas las trazas, pero otro lado aumentaría el tráfico de red, por lo cual no hay una formula mágica que funcione para todos los casos
+
+
+Otros beats
+- WinlogBeat: Se utiliza para monitorizar sistemas windows, en este caso el beat sirve obtener todos los eventos que se generan en Windows, y generar unos dashboard de manera similar a los otros beats ya vistos
+- Auditbeat: Hace lo mismo para monitorizar de manera similar al Winlogbeat, pero para sistemas linux, da métricas exclusivas del sistema operativo
+- Community beats: beats provistos por la misma comunidad, sin soporte de la empresa elastic
+- Con la librería commonbeat, se utiliza para desarollar sus propios beats
+
+
+
+Logstash inputs
+- 
 
 
 
