@@ -555,6 +555,48 @@ output {
 
 - En el caso anterior con las modificaciones realizadas, ahora procedemos a validar el archivo .sincedb, el cual tiene la metadata en la cual el logstash lleva procesado del archvo, si queremos que vuelva a procesar el archivo nuevamente, con es en este caso, ahora se procede a eliminar dicho archivo y a relanzar el logstash:
   $ rm -Rfv log-generator.sincedb
+- Con esto, al volver a ejecutar el logstash, ya logra el correcto procesamiento de los eventos multilínea del log, de acuerdo a la configuración establecida en el code multiline, configurado de manera similar a la configuración del filebeat
+
+
+Input beats
+- Desde que beats empezó a ser parte del elastic stack, se ha convertido en un estándar en la recolección de la información, y envío a elasticsearch
+- Alguna de esta información enviada por los beats, debe ser procesada, y de esto se encarga el logstash
+- Dado lo anterior, el plugin de beats del logstash se ha convertido en uno de los más utilizados
+- El plugin de beats es uno de los más sencillos de configurar en el logstash
+- Lo primero que se tiene que hacer es crear un nuevo archivo de configuración, ya no se va a utilizar el de example.conf
+- También la configuraciones importantes, suelen ser las de el cifrado ssl, con lo cual se le puede adicionar la configuración ssl en el mismo input, de acuerdo a la documentación de la página de elastic:
+  https://www.elastic.co/guide/en/logstash/current/plugins-inputs-beats.html
+  
+input {
+  beats {
+    port => "5044"
+    host => "0.0.0.0"
+    ssl => "false"
+  }
+}
+
+output {
+  stdout {
+    #codec => json_lines
+  }
+}
+  
+- Anteriormente, ya que no se soportaban múltiples pipelines, era necesario definir para cada tipo de log reportarlo en listeners distintos de logstash, por lo tanto era necesario definir en cada puerto el pipeline a utilizar. Al día de hoy esto ya no es necesario con el soporte nativo del logstash de múltiples pipelines
+- Para iniciar el logstash con la nueva configuración, se realiza mediante el comando
+  $ ./bin/logstash -f ./config/log-generator.conf
+  
+  Y para testear la sintáxis del archivo de configuración, se puede hacer mediante el comando
+  $ ./bin/logstash -t -f ./config/log-generator.conf
+- Se deben deshabiliar los módulos habilitados en el filebeat, ya que el beat se va a utilizar para propósitos de monitorear los logs personalizados, y no van a ser de propósito general. Por lo tanto se debe hacer con los comandos
+  $ ./filebeat modules disable system
+  $ ./filebeat modules disable logstash
+- Se procede a arrancar logstash:
+  $ ./bin/logstash -f ./config/log-generator.conf
+- Finalmente se procede a arrancar beats:
+  $ ./filebeat -c ./filebeat.yml
+- Y se revalida mediante una prueba con el jar que genera los logs, y se validan las salidas de consola de la información escrita en el log por la aplicación jar:
+  $ java -jar ./log-generator-1.0.jar -l 200 -d 0
+
 
 
 
