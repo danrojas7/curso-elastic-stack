@@ -428,10 +428,63 @@ Otros beats
 
 
 Logstash inputs
-- 
+- Pieza más compleja del stack, ya que permite realizar muchas más cosas en los logs
+- Tomar la información de entrada para procesarla
+
+Pipeline del logstash
+- Herramienta para el tratamiento puro de logs
+- Es necesario una fuente de entrada, que en este caso va a ser beats, que pueden tener como fuente de información los logs de las aplicaciones desarrolladas, así como también de otras fuentes mediante beats o módulos del filebeat, como puede ser la información generada desde un redis, bases de datos, servidor de correo electrónico, desde amazon web services, el mismo elasticsearch, sistemas de colas como RabbitMQ y Kafka.
+- Para la salida también se puede direccionar a direferentes herramientas como las ya mencionadas, aunque en el curso se va a tener principal énfasis en elasticsearch
+- Internamente, el pipeline de logstash está compuesto por un input, el cual es la entrada de la cual se va a recibir los datos; el filter, son todas las transformaciones que se van a realizar sobre los datos, a campos que sean entendibles, añadir campos y añadir cierta lógica de negocio para sacar de los campos información extra o enriquecerlo; el output: que es la salidaa los múltiples destinos ya descritos, en este caso va a ser el elasticsearch
+- Codec: es una trasformación en la salida que va a hacer el logstash con la información que estemos trabajando, para tranformar en un formato de salida. Por ejemplo el codec JSON para transformar la salida a JSON. Hay múltiples codec para transformar las salidas a diferentes formatos
 
 
+Input stdin
+- Entrada por consola
+- No es utilizado en un escenario productivo, simplemente sirve para labores de testeo del logstash, ya que solamente se requiere configurar este input, y no para no involucrar otros componentes de la integración  en el testeo de logstash
+- Se inicia logstash con la configuración definida incialmente, para testear que el logstash continúe funcionando correctamente:
+  $ ./logstash -f ./config/example.conf
+- En el ejemplo presentado inicialmente en el example.conf, en la salida definida, se encuentra que la misma ya hace el uso de un codec, por el cual se define que la salida no se va a manejar tal cual logstash la capturó, sino que va a darle un formato de JSON
+- Si se comentarea la línea de salida en donde está definido el codex explícito en el archivo de configuración example.conf del logstash, se encuentra que al arrancarlo de nuevo da una salida estándar a la cual está configurada por defecto el logstash (un JSON).
+- Uno de los codecs más usados es el de multiline en la entrada, el cual se puede usar de la siguiente manera, y de forma similar a como se estaba usando en la configuración del filebeat:
 
+input {
+   stdin {
+      codec => multiline {
+         pattern => "fin"
+         negate => "true"
+         what => "next"
+      }
+   }
+}
+output {
+   stdout {
+      #codec => json_lines
+   }
+}
+
+- El otro codec usualmente empleado en el stdin, es el de JSON, el cual se configurade la siguiente manera (se comentarea el codec de multiline):
+input {
+   stdin {
+      # codec => multiline {
+      #    pattern => "fin"
+      #    negate => "true"
+      #    what => "next"
+      # }
+      codec => json
+   }
+}
+output {
+   stdout {
+      #codec => json_lines
+   }
+}
+
+- Inicialmente se realiza la prueba con la línea del codec comentareada, y se hace una prueba ingresando un JSON en el stdin una vez iniciado el logtsash, con lo cual se puede observar que en el output lo toma como un string JSON, agregando caracteres de escape para el caso de las comillas, ya que logstash no reconoce que lo que le está ingresando en este caso un JSON, por esta razón lo reconoce como una cadena de texto más
+- En caso de que la información enviada en el input no sea un JSON, con el codec de entrada JSON empleado, se encuentra que aunque el logstash lo procesa, el tag agregado es como tal un _jsonparsefailure
+- Para referirse a documentación de los codecs disponibles, se puede consular la URL de logstash:
+  https://www.elastic.co/guide/en/logstash/current/codec-plugins.html
+- Este codec es más usado en el apartado de testing para saber cómo se comporta con distintas entradas y distintos codecs
 
 
 
