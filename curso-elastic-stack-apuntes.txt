@@ -488,6 +488,82 @@ output {
 
 
 
+Input file
+- Es el input hasta hace poco tiempo más usado, porque antes de la existencia de filebeat, se usaba para obtener la información de los logs directamente
+- Permite leer archivo de logs directamente
+- En algunas arquitecturas, no se hace necesario emplear un recolector de logs externo al logstash, con lo cual con el input file del logstash basta y sobra
+- En la configuración del input file en el fichero de configuración, nos encontramos que a diferencia del filebeat, se hace necesario definir el path de los archivos de logs de manera absoluta, no de manera relativa:
+- Se puede incluir la configuración de exclude, para que no utilice los archivos de logs definidos en esta regla
+- se puede usar la opción del start_position, para definir si se va a leer el archivo de log desde el inicio, o directamente al final
+- Otra opción muy popular, es la sincedb_path, indica la ruta del fichero que va a guardar el estado de lectura el el cual va el logstash, para asegurar que solamente la primera vez que solo la primera vez que se lea el archivo lo realice desde el principio, para asegurar que cada vez que vaya a leer el contenido del archivo no lo realice desde el principio propiciando a que se dupliquen las trazas del log
+
+input {
+   #stdin {
+      # codec => multiline {
+      #    pattern => "fin"
+      #    negate => "true"
+      #    what => "next"
+      # }
+      # codec => json
+   #}
+   file {
+      path => "/opt/training/elastic-stack/logs/log-generator*.log"
+      #exclude => "*.gz"
+      start_position => "beginning"
+      sincedb_path => "/opt/training/elastic-stack/logs/log-generator.sincedb"
+   }
+}
+output {
+   stdout {
+      #codec => json_lines
+   }
+}
+
+- Para validar si la configuración del archivo de configuración es correcta, se puede hacer mediante el comando siguiente, de manera similar a como se realiza con los beats:
+  $ ./bin/logstash -t -f ./config/example.conf
+- Al iniciar el logstash, se observa que obtiene las trazas de logs de los archivos que coinciden con máscara ingresada en el archivo de configuración, de igual forma se pueden generar nueva mediante el jar de log-generator:
+  $ java -jar ./log-generator-1.0.jar -l 200 -d 0
+- Sin enbargo nos encontramos con un problema similar al que se tuvo en filebeats, el cual es que no está tomando la información de las trazas multilínea, para ello se hace la configuración del codec multiline:
+
+input {
+   #stdin {
+      # codec => multiline {
+      #    pattern => "fin"
+      #    negate => "true"
+      #    what => "next"
+      # }
+      # codec => json
+   #}
+   file {
+      path => "/opt/training/elastic-stack/logs/log-generator*.log"
+      #exclude => "*.gz"
+      start_position => "beginning"
+      sincedb_path => "/opt/training/elastic-stack/logs/log-generator.sincedb"
+      codec => multiline {
+         pattern => "^(DEBUG|INFO|ERROR|TRACE|FATAL|WARNING).*"
+         negate => "true"
+         what => "previous"
+      }
+   }
+}
+output {
+   stdout {
+      #codec => json_lines
+   }
+}
+
+
+- En el caso anterior con las modificaciones realizadas, ahora procedemos a validar el archivo .sincedb, el cual tiene la metadata en la cual el logstash lleva procesado del archvo, si queremos que vuelva a procesar el archivo nuevamente, con es en este caso, ahora se procede a eliminar dicho archivo y a relanzar el logstash:
+  $ rm -Rfv log-generator.sincedb
+
+
+
+
+
+
+
+
+
 
 
 
