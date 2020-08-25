@@ -599,6 +599,113 @@ output {
 
 
 
+Otros plugins de entrada
+- Para transformación de información al margen del elasticstack
+- Para remitirse a otros plugins de input, se puede remitir a la documentación del logstash
+  https://www.elastic.co/guide/en/logstash/current/input-plugins.html
+  Amazon Web Services
+  cloudwatch
+  s3
+  colas de amazon
+  
+  Bases de datos
+  couchdb
+  sqlite
+  
+  dead_letter_queue -> Eventos no enviados a elasticsearch
+  
+  elasticsearch -> Ejecutar querys en elasticsearch, con información para ser procesada (elasticsearch como input)
+  jdbc -> consultas a bases de datos
+  
+  exec -> Scripts de sistema operativo
+  colas -> jms, kafka, rabbitmq, redis (como cola)
+  log4j
+  
+  github
+  syslog
+
+
+
+
+Logtrash filters
+- Obtención de la información, tratar, transformar y enriquecer, mediante filtros en logstash
+- Logstash es visto como una ETL, que lo que hace es la obtención, transformación de información
+- Otras opciones de logstash
+
+
+
+Filter Grok
+- Plugins para filtrar, en el caso particular el plugin grok
+- Es el más usado de logstash
+- Es el más complejo
+- Descomponer en componentes que puedan ser tratados en las partes que nos interesan
+- Tiene una serie de patrones para particionar la información
+- Puede utilizarse también expresiones regulares
+- Un plugin que consume muchos recursos en la plataforma de logstash
+- En el mundo ideal, los logs deberían venir en formato JSON, con esto no tendría que realizarse ningún tipo de groking, y se pasarían estos logs directamente a elasticsearch. Sin embargo en el mundo real, los ficheros de logs nunca vienen en JSON vienen en formato de texto, con sus patrones y particularidades
+- Es necesario analizar los ficheros de logs los cuales se van a enviar a logstash
+- Para validar los logs, y los patrones se puede ingresar a la herramienta grok debugging, de kibana, en los devtools
+- Similar a la herramienta vista anteriormente, también se puede utilizar la herramienta presente en la página siguiente:
+  https://grokdebug.herokuapp.com/
+  Esta tiene además también documentación de ayuda de los distintos patrones utilizados en grok
+  https://grokdebug.herokuapp.com/patterns
+- Una vez definido el patrón grok, como se puede ver a continuación, se puede iniciar el logstash y a continuación el filebeat
+
+input {
+  beats {
+    port => "5044"
+    host => "0.0.0.0"
+    ssl => "false"
+  }
+}
+
+filter {
+  grok {
+    match => {
+      "message" => "%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{WORD:type}\|%{NUMBER:status}\|%{USERNAME:user}\|%{IP:ip}"
+    }
+  }
+}
+
+output {
+  stdout {
+    #codec => json_lines
+  }
+}
+
+- Seguidamente para probar el patrón, se puede ejecutar la aplicación para generar los logs:
+  $ java -jar ./log-generator-1.0.jar -l 10 -d 1000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
