@@ -634,7 +634,7 @@ Logtrash filters
 
 
 
-Filter Grok
+Filter Grok: Básico
 - Plugins para filtrar, en el caso particular el plugin grok
 - Es el más usado de logstash
 - Es el más complejo
@@ -662,7 +662,7 @@ input {
 filter {
   grok {
     match => {
-      "message" => "%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{WORD:type}\|%{NUMBER:status}\|%{USERNAME:user}\|%{IP:ip}"
+      "message" => "%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{WORD:type}\|%{NUMBER:status}\|%{USERNAME:user}\|%{IP:ipAddress}"
     }
   }
 }
@@ -675,14 +675,40 @@ output {
 
 - Seguidamente para probar el patrón, se puede ejecutar la aplicación para generar los logs:
   $ java -jar ./log-generator-1.0.jar -l 10 -d 1000
+- En determinadas trazas de logs que no coinciden con el grok definido para el tipo LOGIN definida en el ejercicio, no va a parsear la información del log en cuyo caso va a salir un error de tipo _grokparsefailure
 
 
 
 
+Filter Grok: Avanzado
+- Realizar la creación de los patrones para interpretar el resto de las entradas de los logs
 
 
+input {
+  beats {
+    port => "5044"
+    host => "0.0.0.0"
+    ssl => "false"
+  }
+}
 
+filter {
+  grok {
+    match => {
+      "message" => [
+        "%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{WORD:type}\|%{NUMBER:status}\|%{USERNAME:user}\|%{IP:ipAddress}",
+        "%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{WORD:type}\|%{NUMBER:duration}\|%{DATA:action}\|%{WORD:status}\|%{USERNAME:user}",
+        "(?m)%{WORD:level} %{TIMESTAMP_ISO8601:date} \[%{WORD:thread}\] %{JAVACLASS:class} - %{DATA:description}\|%{GREEDYDATA:stacktrace}"
+      ]
+    }
+  }
+}
 
+output {
+  stdout {
+    #codec => json_lines
+  }
+}
 
 
 
